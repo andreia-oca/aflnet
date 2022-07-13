@@ -5,8 +5,8 @@ WORKDIR /root/
 # Install common dependencies
 RUN apt-get -y update && \
 	apt-get -y upgrade && \
-    apt-get -y install apt-utils build-essential openssl \
-    clang graphviz-dev git curl wget cmake llvm vim
+  apt-get -y install apt-utils build-essential openssl \
+  clang graphviz-dev git curl wget cmake llvm vim
 
 # Download and compile AFLNet
 ENV LLVM_CONFIG="llvm-config-6.0"
