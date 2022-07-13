@@ -1,0 +1,23 @@
+FROM ubuntu:18.04
+
+WORKDIR /root/
+
+# Install common dependencies
+RUN apt -y update && \
+	apt -y upgrade && \
+    apt -y install apt-utils build-essential openssl \
+    clang graphviz-dev git curl wget cmake llvm vim
+
+# Download and compile AFLNet
+ENV LLVM_CONFIG="llvm-config-6.0"
+
+COPY ./ /root/aflnet
+RUN cd aflnet && \
+    make clean all && \
+    cd llvm_mode make && make
+
+# Set up environment variables for AFLNET
+ENV AFLNET="/root/aflnet"
+ENV WORKDIR="/root"
+ENV PATH="${PATH}:${AFLNET}"
+ENV AFL_PATH="${AFLNET}"
