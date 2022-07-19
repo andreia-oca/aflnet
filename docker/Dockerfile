@@ -4,7 +4,7 @@ WORKDIR /root/
 
 # Install common dependencies
 RUN apt-get -y update && \
-	apt-get -y upgrade && \
+  apt-get -y upgrade && \
   apt-get -y install apt-utils build-essential openssl \
   clang graphviz-dev git curl wget cmake llvm vim
 
@@ -21,3 +21,4 @@ ENV AFLNET="/root/aflnet"
 ENV WORKDIR="/root"
 ENV PATH="${PATH}:${AFLNET}"
 ENV AFL_PATH="${AFLNET}"
+

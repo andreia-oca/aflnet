@@ -1,7 +1,7 @@
-.PHONY: build run clean clean_all  
+.PHONY: build run clean clean_all
 
 build:
-	docker image build -t aflnet:latest .	
+	docker image build -t aflnet:latest .
 
 run: build
 	docker run -it --name aflnet_tutorials aflnet:latest /bin/bash
