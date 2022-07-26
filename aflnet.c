@@ -215,7 +215,6 @@ region_t* extract_requests_ssh(unsigned char* buf, unsigned int buf_size, unsign
 
 region_t* extract_requests_tls(unsigned char* buf, unsigned int buf_size, unsigned int* region_count_ref)
 {
-	printf("TEST\n");
   char *mem;
   unsigned int byte_count = 0;
   unsigned int mem_count = 0;
