@@ -1,0 +1,6 @@
+[submodule "tutorials/mosquitto/mosquitto"]
+	path = tutorials/mosquitto/mosquitto
+	url = https://github.com/eclipse/mosquitto
+[submodule "tutorials/mosquitto/fuzzquito"]
+	path = tutorials/mosquitto/fuzzquito
+	url = git@github.com:andreia-oca/fuzzquitto.git
