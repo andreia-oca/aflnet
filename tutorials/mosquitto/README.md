@@ -1,13 +1,9 @@
 # Tutorial - Fuzzing an MQTT Broker
 
-# Contents
+# Misc
 
-
-
-# Prerequisites
-
-## Instal and test AFLNET
-Check AFLNET [guide](https://github.com/aflnet/aflnet#installation-tested-on-ubuntu-1804--1604-64-bit) to install it.
+## Install and test AFLNET
+Check AFLNET [guide](https://github.com/aflnet/aflnet#installation-tested-on-ubuntu-1804--1604-64-bit) to install and test it.
 
 ## Install and test Mosquitto locally (with no instrumentation)
 
@@ -42,7 +38,7 @@ mosquitto_pub -h localhost -t sensor/temperature 27
 
 # Prepare target (Mosquitto) for fuzzing
 
-1. The source code must be compiled with `gcov` to display code coverage.
+1. The source code must be compiled with `gcov` binds to display code coverage.
 
 Open `config.mk` and change these lines:
 
@@ -65,9 +61,9 @@ CC=afl-gcc make clean all
 # Introduction to Fuzzquitto
 
 Fuzzquitto is a forked version of Mosquitto that is more suitable to fuzzing:
- * is compiled with `afl-gcc` by default 
  * is compiled with code coverage instrumentation by default
  * features a handler to extract code coverage information at runtime
+ * compiled it with `afl-gcc`: `CC=afl-gcc make clean all` 
 
 # Start a fuzzing campaign
 
@@ -98,7 +94,7 @@ mosquitto_pub -h localhost -t test/temp -m 30
 
 6. Save all the interesting packages into an `input` directory.
 
-## Start the fuzzing campaign locally
+## Start the fuzzing campaign on your local machine
 
 Before starting a fuzzing campaing run the following commands to stop AFL from complaining:
 ```bash
@@ -129,7 +125,7 @@ echo performance | tee cpu*/cpufreq/scaling_governor
 
 Build the docker image and spin-up a docker container:
 ```bash
-docker image build -f Dockerfile.dev -t aflnet_mqtt_dev:latest . 
+docker image build -f Dockerfile -t aflnet_mqtt_dev:latest . 
 docker run -it --name aflnet_mqtt_test aflnet_mqtt_dev:latest /bin/bash
 ```
 
@@ -139,14 +135,8 @@ docker start aflnet_mqtt_test
 docker exec -it aflnet_mqtt_test /bin/bash
 ```
 
-Inside the container start a tmux session with a mosquitto instance and an active fuzzing campaing:
+Start the fuzzing campaign using the following command:
 ```bash
-tmux
-# first screen/tab
-cd tutorials/mosquitto/mosquitto/src
-./mosquitto -c mosquitto.conf
-
-# second screen/tab
 afl-fuzz -d -i ./input -o ./output_tmp -N tcp://127.0.0.1/1883 -P MQTT -D 10000 -q 3 -s 3 -E -K -R -W 30 ./mosquitto/src/mosquitto
 ```
 
@@ -162,6 +152,7 @@ gcov mosquitto.c
 # For all the source code files
 gcov *.c
 ```
+
 Use `gcovr` to create coverage reports (for more details check the [documentation](https://gcovr.com/en/stable/getting-started.html):
 ```bash
 # Examples
