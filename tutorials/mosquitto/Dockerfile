@@ -45,7 +45,7 @@ RUN git clone https://github.com/andreia-oca/aflnet-mqtt-support --recursive ./a
 
 RUN cd aflnet && \
     make clean all && \
-    cd llvm_mode make && make
+    cd llvm_mode && make
 
 # Set up environment variables for AFLNET
 ENV AFLNET="/home/${USER}/aflnet"
