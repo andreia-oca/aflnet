@@ -156,7 +156,7 @@ gcov *.c
 Use `gcovr` to create coverage reports (for more details check the [documentation](https://gcovr.com/en/stable/getting-started.html):
 ```bash
 # Examples
-gcovr --json-summary-pretty --json-summary --exclude-unreachable-branches --exclude-throw-branches --root mosquitto/src/
+gcovr --json-summary-pretty --json-summary --exclude-unreachable-branches --exclude-throw-branches --root mosquitto/src/ --output coverage.json
 ```
 
 Display code coverage information in an .html page:\\
@@ -182,7 +182,13 @@ rm -rf *.gcda
 
 ## Code coverage scripts
 
-TODO
+We are using a script that start in background to dump code coverage information every 10 minutes.
+
+Pay attention to disk usage. One `.json` file can get up to 2 MB.
+
+For a 24h fuzzing campaing with code coverage information dumoed every 10 minutes, we reach almost 300 MB of raw data.
+
+Next the raw code coverage information will be analyzes in Jupyter Notebooks using `pandas`.
 
 # Crashes triage
 

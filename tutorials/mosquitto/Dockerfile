@@ -20,7 +20,12 @@ RUN apt-get -y install build-essential clang graphviz-dev git cmake llvm \
 
 # Packages used for debugging (thiese are optional in a prod env)
 # If you are using this container for debugging uncomment the line below
-# RUN apt-get -y install curl wget vim tmux net-tools host
+RUN apt-get -y install curl wget vim tmux net-tools host
+# Also for debugging purposes install sudo 
+RUN apt-get -y install sudo
+
+# Fuzzer statistics
+# RUN apt-get -y install gnuplot
 
 # Packages used for code coverage reports
 RUN apt-get -y install python3-pip
@@ -33,7 +38,8 @@ ENV GID=1000
 ENV USER=mosquitto
 ENV PASSWD=mosquitto
 
-RUN useradd -m ${USER} --uid=${UID} && echo "${USER}:${PASSWD}" | chpasswd
+# Also for debugging purposes add `mosquitto` to the sudoers file
+RUN useradd -m ${USER} --uid=${UID} && echo "${USER}:${PASSWD}" | chpasswd && adduser mosquitto sudo
 
 USER mosquitto
 WORKDIR /home/${USER}
@@ -67,3 +73,7 @@ RUN cd aflnet && \
 #     sed -i 's/WITH_COVERAGE:=no/WITH_COVERAGE:=yes/g' config.mk && \
 #     sed -i 's/WITH_DOCS:=yes/WITH_DOCS:=no/g' config.mk && \
 #     CC=afl-gcc make clean all
+
+# Start the fuzzing campaign
+# CMD cd aflnet/tutorial/mosquitto/ && \
+#     ./start_fuzzing_campaign.sh
