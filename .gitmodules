@@ -2,5 +2,5 @@
 	path = tutorials/mosquitto/mosquitto
 	url = https://github.com/eclipse/mosquitto
 [submodule "tutorials/mosquitto/fuzzquito"]
-	path = tutorials/mosquitto/fuzzquito
-	url = git@github.com:andreia-oca/fuzzquitto.git
+	path = tutorials/mosquitto/fuzzquitto
+	url = https://github.com/andreia-oca/fuzzquitto.git
