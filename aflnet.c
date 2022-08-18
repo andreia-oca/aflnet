@@ -780,7 +780,7 @@ region_t* extract_requests_ipp(unsigned char* buf, unsigned int buf_size, unsign
   }
   if (mem) ck_free(mem);
 
-  //in case region_count equals zero, it means that the structure of the buffer is broken
+  //In case region_count equals zero, it means that the structure of the buffer is broken
   //hence we create one region for the whole buffer
   if ((region_count == 0) && (buf_size > 0)) {
     regions = (region_t *)ck_realloc(regions, sizeof(region_t));
@@ -796,6 +796,16 @@ region_t* extract_requests_ipp(unsigned char* buf, unsigned int buf_size, unsign
   return regions;
 }
 
+/*
+Note on MQTT request message format
+
+MQTT Header Packets have 2 bytes.
+The 1st byte represents: the request type code (4 bits) and flags (4 bits)
+The 2nd byte represents the remaining length of the message
+
+The 1st byte is used to identify the message type (connect, subscribe etc.)
+The 2nd byte is used to know the entire lentgh of the request.
+*/
 region_t* extract_requests_mqtt(unsigned char* buf, unsigned int buf_size, unsigned int* region_count_ref)
 {
   char *mem;
@@ -803,6 +813,7 @@ region_t* extract_requests_mqtt(unsigned char* buf, unsigned int buf_size, unsig
   unsigned int mem_count = 0;
   unsigned int mem_size = 1024;
   unsigned int region_count = 0;
+  unsigned int message_length = 0;
   region_t *regions = NULL;
 
   // Define specific format for MQTT responses
@@ -817,17 +828,24 @@ region_t* extract_requests_mqtt(unsigned char* buf, unsigned int buf_size, unsig
   unsigned int cur_end = 0;
   while (byte_count < buf_size) {
     memcpy(&mem[mem_count], buf + byte_count, 1);
+    // hexdump("debug:", mem, 0, mem_count);
     byte_count++;
 
-    // Check if mem starts with MQTT request codes
-    if ((mem_count > 0) &&
-        ((memcmp(&mem[mem_count - 1], requests_codes, 1) == 0) ||
-        (memcmp(&mem[mem_count - 1], requests_codes + 1, 1) == 0) ||
-        (memcmp(&mem[mem_count - 1], requests_codes + 2, 1) == 0) ||
-        (memcmp(&mem[mem_count - 1], requests_codes + 3, 1) == 0) ||
-        (memcmp(&mem[mem_count - 1], requests_codes + 4, 1) == 0) ||
-        (memcmp(&mem[mem_count - 1], requests_codes + 5, 1) == 0) ||
-        (memcmp(&mem[mem_count - 1], requests_codes + 6, 1) == 0))) {
+    // Check the last 2 bytes of the MQTT message
+    // The first byte is the message type
+    // The second byte is the length of the message (and the region)
+    if ((mem_count > 1) &&
+        ((memcmp(&mem[mem_count - 2], requests_codes, 1) == 0) ||
+        (memcmp(&mem[mem_count - 2], requests_codes + 1, 1) == 0) ||
+        (memcmp(&mem[mem_count - 2], requests_codes + 2, 1) == 0) ||
+        (memcmp(&mem[mem_count - 2], requests_codes + 3, 1) == 0) ||
+        (memcmp(&mem[mem_count - 2], requests_codes + 4, 1) == 0) ||
+        (memcmp(&mem[mem_count - 2], requests_codes + 5, 1) == 0) ||
+        (memcmp(&mem[mem_count - 2], requests_codes + 6, 1) == 0))) {
+      message_length = (int) mem[mem_count - 1];
+      cur_end += message_length - 1;
+      byte_count += message_length - 1;
+
       region_count++;
       regions = (region_t *)ck_realloc(regions, region_count * sizeof(region_t));
       regions[region_count - 1].start_byte = cur_start;
@@ -842,7 +860,7 @@ region_t* extract_requests_mqtt(unsigned char* buf, unsigned int buf_size, unsig
       mem_count++;
       cur_end++;
 
-      // Check if the last byte has been reached
+      // Check if the last byte of `buf` has been reached
       if (cur_end == buf_size - 1) {
         region_count++;
         regions = (region_t *)ck_realloc(regions, region_count * sizeof(region_t));
@@ -852,26 +870,26 @@ region_t* extract_requests_mqtt(unsigned char* buf, unsigned int buf_size, unsig
         regions[region_count - 1].state_count = 0;
         break;
       }
-      if (mem_count == mem_size) {
-        // Enlarge the mem buffer
-        mem_size = mem_size * 2;
-        mem=(char *)ck_realloc(mem, mem_size);
-      }
+      
+      // Enlarge the mem buffer
+      // if (mem_count == mem_size) {
+      //   mem_size = mem_size * 2;
+      //   mem = (char *)ck_realloc(mem, mem_size);
+      // }
     }
   }
 
   if (mem)
     ck_free(mem);
 
-  // In case region_count equals zero, it means that the structure of the buffer is broken
-  // Hence we create one region for the whole buffer
+  // In case region_count equals zero, it means that the structure of the buffer is broken.
+  // Hence, we create one region for the whole buffer.
   if ((region_count == 0) && (buf_size > 0)) {
     regions = (region_t *)ck_realloc(regions, sizeof(region_t));
     regions[0].start_byte = 0;
     regions[0].end_byte = buf_size - 1;
     regions[0].state_sequence = NULL;
     regions[0].state_count = 0;
-
     region_count = 1;
   }
 
@@ -1585,6 +1603,7 @@ unsigned int* extract_response_codes_ipp(unsigned char* buf, unsigned int buf_si
   return state_sequence;
 }
 
+
 unsigned int* extract_response_codes_mqtt(unsigned char* buf, unsigned int buf_size, unsigned int* state_count_ref)
 {
   char *mem;
@@ -1593,37 +1612,42 @@ unsigned int* extract_response_codes_mqtt(unsigned char* buf, unsigned int buf_s
   unsigned int mem_size = 1024;
   unsigned int *state_sequence = NULL;
   unsigned int state_count = 0;
+  unsigned int message_length = 0;
 
   // Define specific format for MQTT responses
   // Minimal set of messages for PoC; no QoS, no Auth
-  char responses_codes[6] = {0x20, 0x30, 0x31, 0x90, 0xb0, 0xd0};
+  char responses_codes[] = {0x20, 0x30, 0x31, 0x90, 0xb0, 0xd0};
   // Maximal set of messages
   // char response_codes[] = {0x20, 0x30, 0x31, 0x40, 0x50, 0x62, 0x70, 0x90, 0xb0, 0xd0, 0xe0, 0xf0}
 
   mem = (char *)ck_alloc(mem_size);
 
-  // The first state of the constructed FSM
+  // The first state of the constructed IPSM
   state_count++;
   state_sequence = (unsigned int *)ck_realloc(state_sequence, state_count * sizeof(unsigned int));
   state_sequence[state_count - 1] = 0;
 
   while (byte_count < buf_size) {
-    // Copy the first byte of the header
     memcpy(&mem[mem_count], buf + byte_count, 1);
     byte_count++;
 
-    // Check if it is a response packet
-    if((mem_count > 0) && 
-       ((memcmp(&mem[mem_count - 1], responses_codes, 1) == 0) || 
-       (memcmp(&mem[mem_count - 1], responses_codes + 1, 1) == 0) ||
-       (memcmp(&mem[mem_count - 1], responses_codes + 2, 1) == 0) ||
-       (memcmp(&mem[mem_count - 1], responses_codes + 3, 1) == 0) ||
-       (memcmp(&mem[mem_count - 1], responses_codes + 4, 1) == 0) ||
-       (memcmp(&mem[mem_count - 1], responses_codes + 5, 1) == 0))) {
-      // Extract the response code
-      unsigned char message_code = (unsigned char) mem[mem_count - 1];
+    // Check the last 2 bytes of the MQTT message
+    // The first byte is the message type
+    // The second byte is the length of the message
+    if((mem_count > 1) && 
+       ((memcmp(&mem[mem_count - 2], responses_codes, 1) == 0) || 
+       (memcmp(&mem[mem_count - 2], responses_codes + 1, 1) == 0) ||
+       (memcmp(&mem[mem_count - 2], responses_codes + 2, 1) == 0) ||
+       (memcmp(&mem[mem_count - 2], responses_codes + 3, 1) == 0) ||
+       (memcmp(&mem[mem_count - 2], responses_codes + 4, 1) == 0) ||
+       (memcmp(&mem[mem_count - 2], responses_codes + 5, 1) == 0))) {
+      message_length = (int) mem[mem_count - 1];
 
-      // Message code not initialized (reserved)
+      // Extract the response code
+      unsigned char message_code = (unsigned char) mem[mem_count - 2];
+
+      // 0x0 is marked as RESERVED (see MQTT docs) and not used yet
+      // We do not want to create a state for this scenario
       if (message_code == 0)
         break;
 
@@ -1631,13 +1655,17 @@ unsigned int* extract_response_codes_mqtt(unsigned char* buf, unsigned int buf_s
       state_count++;
       state_sequence = (unsigned int *)ck_realloc(state_sequence, state_count * sizeof(unsigned int));
       state_sequence[state_count - 1] = message_code;
+      
+      byte_count += message_length - 1;
       mem_count = 0;
     } else {
       mem_count++;
-      if (mem_count == mem_size) {
-        mem_size = mem_size * 2;
-        mem = (char *) ck_realloc(mem, mem_size);
-      }
+
+      // Enlarge the mem buffer
+      // if (mem_count == mem_size) {
+      //   mem_size = mem_size * 2;
+      //   mem = (char *) ck_realloc(mem, mem_size);
+      // }
     }
   }
 
@@ -1647,6 +1675,7 @@ unsigned int* extract_response_codes_mqtt(unsigned char* buf, unsigned int buf_s
   *state_count_ref = state_count;
   return state_sequence;
 }
+
 
 // kl_messages manipulating functions
 
@@ -1929,7 +1958,7 @@ int parse_net_config(u8* net_config, u8* protocol, u8** ip_address, u32* port)
   if (strlen(net_config) > 80) return 1;
 
   strncpy(buf, net_config, strlen(net_config));
-   str_rtrim(buf);
+  str_rtrim(buf);
 
   if (!str_split(buf, "/", tokens, tokenCount))
   {
@@ -1960,9 +1989,9 @@ u8* state_sequence_to_string(unsigned int *stateSequence, unsigned int stateCoun
     if ((i >= 2) && (stateSequence[i] == stateSequence[i - 1]) && (stateSequence[i] == stateSequence[i - 2])) continue;
     unsigned int stateID = stateSequence[i];
     if (i == stateCount - 1) {
-      snprintf(strState, STATE_STR_LEN, "%d", (int) stateID);
+      snprintf(strState, STATE_STR_LEN, "0x%02x", (int) stateID);
     } else {
-      snprintf(strState, STATE_STR_LEN, "%d-", (int) stateID);
+      snprintf(strState, STATE_STR_LEN, "0x%02x-", (int) stateID);
     }
     out = (u8 *)ck_realloc(out, len + strlen(strState) + 1);
     memcpy(&out[len], strState, strlen(strState) + 1);
@@ -1985,11 +2014,12 @@ u8* state_sequence_to_string(unsigned int *stateSequence, unsigned int stateCoun
   return out;
 }
 
-
+// Utility that can be used to inspect data packets 
+// Useful for debugging purposes, mostly used in aflnet-replay.c
 void hexdump(unsigned char *msg, unsigned char * buf, int start, int end) {
-  printf("%s : ", msg);
-  for (int i=start; i<=end; i++) {
-    printf("%02x", buf[i]);
+  printf("%s:", msg);
+  for (int i = start; i <= end; i++) {
+    printf("0x%02x ", buf[i]);
   }
   printf("\n");
 }
