@@ -29,6 +29,7 @@ int main(int argc, char* argv[])
   unsigned int socket_timeout = 1000;
   unsigned int poll_timeout = 1;
 
+  printf("This version of aflnet-replay is tempered with.\n");
 
   if (argc < 4) {
     PFATAL("Usage: ./aflnet-replay packet_file protocol port [first_resp_timeout(us) [follow-up_resp_timeout(ms)]]");
@@ -107,8 +108,8 @@ int main(int argc, char* argv[])
     }
   }
 
-  //Send requests one by one
-  //And save all the server responses
+  // Send requests one by one
+  // And save all the server responses
   while(!feof(fp)) {
     if (buf) {ck_free(buf); buf = NULL;}
     if (fread(&size, sizeof(unsigned int), 1, fp) > 0) {
@@ -118,11 +119,20 @@ int main(int argc, char* argv[])
       buf = (char *)ck_alloc(size);
       fread(buf, size, 1, fp);
 
-      if (net_recv(sockfd, timeout, poll_timeout, &response_buf, &response_buf_size)) break;
+      if (net_recv(sockfd, timeout, poll_timeout, &response_buf, &response_buf_size)) {
+        hexdump("response 1:", response_buf, 0, response_buf_size);
+        break;
+      }
+    
       n = net_send(sockfd, timeout, buf,size);
+      hexdump("request:", buf, 0, size);
+
       if (n != size) break;
 
-      if (net_recv(sockfd, timeout, poll_timeout, &response_buf, &response_buf_size)) break;
+      if (net_recv(sockfd, timeout, poll_timeout, &response_buf, &response_buf_size)) {
+        hexdump("response 2:", response_buf, 0, response_buf_size);
+        break;
+      }
     }
   }
 
@@ -136,14 +146,17 @@ int main(int argc, char* argv[])
   fprintf(stderr,"\nResponses from server:");
 
   for (i = 0; i < state_count; i++) {
-    fprintf(stderr,"%d-",state_sequence[i]);
+    fprintf(stderr, "0x%02x-", state_sequence[i]);
   }
 
   fprintf(stderr,"\n++++++++++++++++++++++++++++++++\nResponses in details:\n");
-  for (i=0; i < response_buf_size; i++) {
-    fprintf(stderr,"%c",response_buf[i]);
+  fprintf(stderr, "Size of reponse buf %d\n", response_buf_size);
+
+  if (response_buf_size > 0) {
+    hexdump("response_buf:", response_buf, 0, response_buf_size);
   }
-  fprintf(stderr,"\n--------------------------------");
+
+  fprintf(stderr,"\n-------------------------------\n");
 
   //Free memory
   ck_free(state_sequence);
@@ -152,4 +165,3 @@ int main(int argc, char* argv[])
 
   return 0;
 }
-
