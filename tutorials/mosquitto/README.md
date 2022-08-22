@@ -1,7 +1,5 @@
 # Tutorial - Fuzzing an MQTT Broker
 
-# Misc
-
 ## Install and test AFLNET
 Check AFLNET [guide](https://github.com/aflnet/aflnet#installation-tested-on-ubuntu-1804--1604-64-bit) to install and test it.
 
@@ -54,8 +52,16 @@ sed -i 's/WITH_COVERAGE:=no/WITH_COVERAGE:=yes/g' config.mk
 
 2. The source code must be compiled with AFL instrumentation.
 
-```
+```bash
 CC=afl-gcc make clean all
+```
+
+3. Compile it with ASan:
+```bash
+export AFL_USE_ASAN=1
+
+CC=afl-gcc CFLAGS="-g -O0 -fsanitize=address -fno-omit-frame-pointer" LDFLAGS="-g -O0 -fsanitize=address -fno-omit-frame-pointer" \
+make clean all WITH_TLS=no WITH_STATIC_LIBRARIES=yes WITH_COVERAGE=yes
 ```
 
 # Introduction to Fuzzquitto
@@ -94,6 +100,13 @@ mosquitto_pub -h localhost -t test/temp -m 30
 
 6. Save all the interesting packages into an `input` directory.
 
+## Our seed corpora
+
+We have privded different seed corpora:
+ - just for fuzzing in subscriber mode
+ - just for fuzzing in publisher mode
+ - the extended corpus imported from [mqtt-fuzz](https://github.com/F-Secure/mqtt_fuzz/tree/master/valid-cases).
+
 ## Start the fuzzing campaign on your local machine
 
 Before starting a fuzzing campaing run the following commands to stop AFL from complaining:
@@ -107,8 +120,12 @@ echo performance | tee cpu*/cpufreq/scaling_governor
 To start the fuzzing campaign, you have to first start `mosquitto` and then run the fuzzer:
 ```bash
 cd tutorial/mosquitto
-./mosquitto/src/mosquitto &
-afl-fuzz -d -i ./input -o ./output_tmp -N tcp://127.0.0.1/1883 -P MQTT -D 10000 -q 3 -s 3 -E -K -R -W 30 ./mosquitto/src/mosquitto 
+afl-fuzz -d -i ./input -o ./output_tmp -N tcp://127.0.0.1/1883 -P MQTT -D 10000 -q 3 -s 3 -E -K -R -W 30 ./fuzzquitto/src/mosquitto 
+```
+
+For fuzzing with ASan on:
+```bash
+afl-fuzz -m none -d -i ./input -o ./output_tmp -N tcp://127.0.0.1/1883 -P MQTT -D 10000 -q 3 -s 3 -E -K -R -W 30 ./fuzzquitto/src/mosquitto 
 ```
 
 Note: It is recommended to add the timestamp in name of the output directory - `output_dd_mm_yyyy_hh_mm` (e.g. `output_12_07_2022_17_30`)
@@ -135,24 +152,17 @@ docker start aflnet_mqtt_test
 docker exec -it aflnet_mqtt_test /bin/bash
 ```
 
-Start the fuzzing campaign using the following command:
-```bash
-afl-fuzz -d -i ./input -o ./output_tmp -N tcp://127.0.0.1/1883 -P MQTT -D 10000 -q 3 -s 3 -E -K -R -W 30 ./mosquitto/src/mosquitto
-```
-
 # Code coverage
 
 ## How to check code coverage
 
-Show code coverage percentage:\\
+Show code coverage percentage for lines and branches:
+
 ```bash
-cd mosquitto/src
-# For a specific file
-gcov mosquitto.c
-# For all the source code files
-gcov *.c
+gcovr -r ./fuzzquitto/src -s | grep "[lb][a-z]*:"
 ```
 
+Note:\\
 Use `gcovr` to create coverage reports (for more details check the [documentation](https://gcovr.com/en/stable/getting-started.html):
 ```bash
 # Examples
@@ -161,37 +171,46 @@ gcovr --json-summary-pretty --json-summary --exclude-unreachable-branches --excl
 
 Display code coverage information in an .html page:\\
 ```bash
-# [Optional] Run baseline for lcov 
-lcov --no-external --capture --initial --directory ./mosquitto/src --output-file ./coverage_baseline.info
-
-# Run lcov
-lcov --no-external --capture --directory ./mosquitto/src --output-file ./coverage.info
-
-# [Optional] If baseline was created
-lcov --add-tracefile ./coverage_baseline.info --add-tracefile ./coverage_test.info --output-file ./coverage.info
-
-# Generate .html files
-genhtml --legend --title "Fuzzing MQTT" --output-drectory=coverage ./coverage.info
+gcovr -r ./fuzzquitto/src --html --html-details -o index.html
 ```
 
-Clean `gcov` temporary runtime files:\\
+Clean `gcovr` temporary runtime files:\\
 ```bash
-cd mosquitto/src
-rm -rf *.gcda
+gcovr -r ./fuzzquitto/src -s -d > /dev/null 2>&1
 ``` 
 
-## Code coverage scripts
+## Replay testcases/crashes with `aflnet-replay` or `afl-replay`
 
-We are using a script that start in background to dump code coverage information every 10 minutes.
+For debugging purposes, one can use the replay features of AFLNET `aflnet-replay` and `afl-replay`.
+ - `afl-replay` sends the whole testcase as a single package
+ - `aflnet-replay` sends the packages structured. During the fuzzing campaign, AFLNET breaks the testcases into sequences that make sense for the protocol. This sequences can be found in `replayable-queue` dumped as tuples of (sequence_size, sequence). Furthermore, for debugging, one can check the `regions` folder to see the start byte and end byte of each sequence that was parsed by AFLNET from each testcase.
 
-Pay attention to disk usage. One `.json` file can get up to 2 MB.
+To replay a certain testcase, one has to open 2 terminals.
 
-For a 24h fuzzing campaing with code coverage information dumoed every 10 minutes, we reach almost 300 MB of raw data.
+Terminal 1:\\
+```bash
+# Make sure that the MQTT broker will exit in a clean way (SIGINT is caught by Mosquitto design and exists gracefully)
+timeout -k 0 -s SIGINT 3s .fuzzquitto/src/mosquitto 
+```
 
-Next the raw code coverage information will be analyzes in Jupyter Notebooks using `pandas`.
+Terminal 2:\\
+```bash
+aflnet-replay output/replayable-queueu/id:000004,src:000000,op:flip1,pos:0,+cov MQTT 1883 30
+```
 
-# Crashes triage
+`aflnet-replay` is going to show some logs to stderr about the requests sent, the response and, also, the state machine constructed based on the interaction with the server.
 
-## Replay crashes with `afl-replay`
+Note: One can also send messages directly to the broker with `netcat`. To yield more results, make sure that mosquitto was compiled with ASan.
+```bash
+nc 127.0.0.1 1883 < output/replayable-queueu/id:000004,src:000000,op:flip1,pos:0,+cov
+```
 
-TODO
+## Code coverage analysis in Jupyter notebook
+
+To replay all the found paths and get the coverage information from each, one can use the script `coverage_analysis.sh` as follows:
+```bash
+# ./coverage_analysis.sh <aflnet_output_folder> <output_file> <step> <mode>
+./coverage_analysis.sh output cov_over_time.csv 1 1
+```
+
+Next the raw code coverage information will be analyzes in Jupyter Notebooks using `pandas` and `matplotlib`.
