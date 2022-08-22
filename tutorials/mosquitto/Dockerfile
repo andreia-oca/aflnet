@@ -64,13 +64,13 @@ RUN cd aflnet && \
     git submodule update --init --recursive && \
     cd tutorials/mosquitto/fuzzquitto && \
     CFLAGS="-g -O0 -fsanitize=address -fno-omit-frame-pointer" LDFLAGS="-g -O0 -fsanitize=address -fno-omit-frame-pointer" \
-    make clean all WITH_TLS=no WITH_STATIC_LIBRARIES=yes WITH_COVERAGE=yes WITH_DOCS=no
+    CC=afl-gcc make clean all WITH_TLS=no WITH_STATIC_LIBRARIES=yes WITH_COVERAGE=yes WITH_DOCS=no
 
 # Clone and compile (minimal) Mosquitto v 1.6.10 (buggy) with ASan
 RUN cd aflnet && \
     cd tutorials/mosquitto/mosquitto_1.6.10 && \
     CFLAGS="-g -O0 -fsanitize=address -fno-omit-frame-pointer" LDFLAGS="-g -O0 -fsanitize=address -fno-omit-frame-pointer" \
-    make clean all WITH_TLS=no WITH_STATIC_LIBRARIES=yes WITH_COVERAGE=yes WITH_DOCS=no
+    CC=afl-gcc make clean all WITH_TLS=no WITH_STATIC_LIBRARIES=yes WITH_COVERAGE=yes WITH_DOCS=no
 
 # Default command
 CMD /bin/bash
