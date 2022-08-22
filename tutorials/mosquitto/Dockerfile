@@ -25,7 +25,7 @@ RUN apt-get -y install curl wget vim tmux net-tools host
 RUN apt-get -y install sudo
 
 # Fuzzer statistics
-RUN apt-get -y install gnuplot
+# RUN apt-get -y install gnuplot
 
 # Packages used for code coverage reports
 RUN apt-get -y install python3-pip
@@ -64,7 +64,13 @@ RUN cd aflnet && \
     git submodule update --init --recursive && \
     cd tutorials/mosquitto/fuzzquitto && \
     CFLAGS="-g -O0 -fsanitize=address -fno-omit-frame-pointer" LDFLAGS="-g -O0 -fsanitize=address -fno-omit-frame-pointer" \
-    make clean all WITH_TLS=no WITH_STATIC_LIBRARIES=yes WITH_COVERAGE=yes
+    make clean all WITH_TLS=no WITH_STATIC_LIBRARIES=yes WITH_COVERAGE=yes WITH_DOCS=no
+
+# Clone and compile (minimal) Mosquitto v 1.6.10 (buggy) with ASan
+RUN cd aflnet && \
+    cd tutorials/mosquitto/mosquitto_1.6.10 && \
+    CFLAGS="-g -O0 -fsanitize=address -fno-omit-frame-pointer" LDFLAGS="-g -O0 -fsanitize=address -fno-omit-frame-pointer" \
+    make clean all WITH_TLS=no WITH_STATIC_LIBRARIES=yes WITH_COVERAGE=yes WITH_DOCS=no
 
 # Default command
 CMD /bin/bash
