@@ -29,7 +29,7 @@ int main(int argc, char* argv[])
   unsigned int socket_timeout = 1000;
   unsigned int poll_timeout = 1;
 
-  printf("This version of aflnet-replay is tempered with.\n");
+  printf("This version of aflnet-replay is tempered with by @andreia-oca.\n");
 
   if (argc < 4) {
     PFATAL("Usage: ./aflnet-replay packet_file protocol port [first_resp_timeout(us) [follow-up_resp_timeout(ms)]]");

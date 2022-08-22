@@ -828,7 +828,6 @@ region_t* extract_requests_mqtt(unsigned char* buf, unsigned int buf_size, unsig
   unsigned int cur_end = 0;
   while (byte_count < buf_size) {
     memcpy(&mem[mem_count], buf + byte_count, 1);
-    // hexdump("debug:", mem, 0, mem_count);
     byte_count++;
 
     // Check the last 2 bytes of the MQTT message

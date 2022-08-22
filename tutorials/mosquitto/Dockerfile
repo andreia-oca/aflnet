@@ -25,7 +25,7 @@ RUN apt-get -y install curl wget vim tmux net-tools host
 RUN apt-get -y install sudo
 
 # Fuzzer statistics
-# RUN apt-get -y install gnuplot
+RUN apt-get -y install gnuplot
 
 # Packages used for code coverage reports
 RUN apt-get -y install python3-pip
@@ -65,15 +65,5 @@ RUN cd aflnet && \
     cd tutorials/mosquitto/fuzzquitto && \
     CC=afl-gcc make clean all
 
-# Clone and compile (minimal) Mosquitto
-# If you want to generate `man` pages, remove the line that sets WITH_DOCS:=no
-# RUN cd aflnet && \
-#     git submodule update --init --recursive && \
-#     cd tutorials/mosquitto/mosquitto && \
-#     sed -i 's/WITH_COVERAGE:=no/WITH_COVERAGE:=yes/g' config.mk && \
-#     sed -i 's/WITH_DOCS:=yes/WITH_DOCS:=no/g' config.mk && \
-#     CC=afl-gcc make clean all
-
-# Start the fuzzing campaign
-# CMD cd aflnet/tutorial/mosquitto/ && \
-#     ./start_fuzzing_campaign.sh
+# Default command
+CMD /bin/bash
