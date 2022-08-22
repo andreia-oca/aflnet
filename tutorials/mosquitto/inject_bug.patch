@@ -1,0 +1,34 @@
+diff --git a/src/loop.c b/src/loop.c
+index dbc16ae3..fa9c567d 100644
+--- a/src/loop.c
++++ b/src/loop.c
+@@ -319,14 +319,29 @@ void do_disconnect(struct mosquitto *context, int reason)
+ 			}else{
+ 				id = "<unknown>";
+ 			}
++			char *null_pointer = NULL;
+ 			if(context->state != mosq_cs_disconnecting && context->state != mosq_cs_disconnect_with_will){
+ 				switch(reason){
+ 					case MOSQ_ERR_SUCCESS:
+ 						break;
+ 					case MOSQ_ERR_MALFORMED_PACKET:
++						/******************************************************************************
++						  WARNING: Injected Vulnerability
++						  The code below creates and dereferences a NULL pointer if the packet is malformed.
++						  Triggers   - NULL pointer dereference
++						******************************************************************************/
++						*null_pointer = 1337;
++						/****** END vulnerable code **************************************************/
+ 						log__printf(NULL, MOSQ_LOG_NOTICE, "Client %s disconnected due to malformed packet.", id);
+ 						break;
+ 					case MOSQ_ERR_PROTOCOL:
++						/******************************************************************************
++						  WARNING: Injected Vulnerability
++						  The code below creates and dereferences a NULL pointer if the packet is malformed.
++						  Triggers   - NULL pointer dereference
++						******************************************************************************/
++						// *null_pointer = 420;
++						/****** END vulnerable code **************************************************/
+ 						log__printf(NULL, MOSQ_LOG_NOTICE, "Client %s disconnected due to protocol error.", id);
+ 						break;
+ 					case MOSQ_ERR_CONN_LOST:
