@@ -59,11 +59,12 @@ ENV WORKDIR="/home/${USER}"
 ENV PATH="${PATH}:${AFLNET}"
 ENV AFL_PATH="${AFLNET}"
 
-# Clone and compile (minimal) Fuzzquitto
+# Clone and compile (minimal) Fuzzquitto with ASan
 RUN cd aflnet && \
     git submodule update --init --recursive && \
     cd tutorials/mosquitto/fuzzquitto && \
-    CC=afl-gcc make clean all
+    CFLAGS="-g -O0 -fsanitize=address -fno-omit-frame-pointer" LDFLAGS="-g -O0 -fsanitize=address -fno-omit-frame-pointer" \
+    make clean all WITH_TLS=no WITH_STATIC_LIBRARIES=yes WITH_COVERAGE=yes
 
 # Default command
 CMD /bin/bash
