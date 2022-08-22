@@ -16,7 +16,7 @@ WORKDIR="./fuzzquitto/src"
 rm $covfile; touch $covfile
 
 # Clear gcovr data
-gcovr -r $WORKDIR/-s -d > /dev/null 2>&1
+gcovr -r $WORKDIR/ -s -d > /dev/null 2>&1
 
 # Output the header of the coverage file which is in the CSV format
 # Time: timestamp, l_per/b_per and l_abs/b_abs: line/branch coverage in percentage and absolute number
