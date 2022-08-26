@@ -1,14 +1,14 @@
 #!/bin/bash
 
 # Common usage:
-# ./coverage_collection.sh ./output cov_over_time.csv 1 1
+# ./coverage_analysis.sh ./output cov_over_time.csv 1 1
 
 folder=$1             # fuzzer result folder
 covfile="$folder/$2"  # path to coverage file
 step=$3               # step = 5 means we run gcovr after every 5 test cases
 fmode=$4    # file mode -- structured or not
-            # fmode = 0: the test case is a concatenated message sequence -- there is no message boundary - AFL
-            # fmode = 1: the test case is a structured file keeping several request messages - AFLNET
+            # fmode = 0: the testcase is a concatenated message sequence -- there is no message boundary - AFL
+            # fmode = 1: the testcase is a structured file keeping several request messages - AFLNET
 
 WORKDIR="./fuzzquitto/src"
 

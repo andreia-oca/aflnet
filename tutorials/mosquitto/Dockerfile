@@ -72,5 +72,12 @@ RUN cd aflnet && \
     CFLAGS="-g -O0 -fsanitize=address -fno-omit-frame-pointer" LDFLAGS="-g -O0 -fsanitize=address -fno-omit-frame-pointer" \
     CC=afl-gcc make clean all WITH_TLS=no WITH_STATIC_LIBRARIES=yes WITH_COVERAGE=yes WITH_DOCS=no
 
+# Clone and compile (minimal) Mosquitto (custom bugs)
+RUN cd aflnet && \
+    cd tutorials/mosquitto/mosquitto && \
+    cp ../inject_bug.patch ./ && \
+    git apply inject_bug.patch && \
+    CC=afl-gcc make clean all WITH_TLS=no WITH_STATIC_LIBRARIES=yes WITH_COVERAGE=yes WITH_DOCS=no
+
 # Default command
 CMD /bin/bash
