@@ -1,7 +1,28 @@
 # Tutorial - Fuzzing an MQTT Broker
 
-<!-- START doctoc -->
-<!-- END doctoc -->
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**
+
+- [Build AFLNET](#build-aflnet)
+- [Targets](#targets)
+  - [Mosquitto](#mosquitto)
+    - [Build Mosquitto Locally](#build-mosquitto-locally)
+    - [Build Mosquitto for Fuzzing](#build-mosquitto-for-fuzzing)
+  - [Fuzzquitto](#fuzzquitto)
+  - [NanoMQ](#nanomq)
+- [Start a Fuzzing Campaign](#start-a-fuzzing-campaign)
+  - [Create a Seed Corpus](#create-a-seed-corpus)
+  - [Start a Fuzzing Campaign Locally](#start-a-fuzzing-campaign-locally)
+  - [Start a Fuzzing Campaign Remotely](#start-a-fuzzing-campaign-remotely)
+- [Code Coverage](#code-coverage)
+  - [Code Coverage Analysis](#code-coverage-analysis)
+  - [Code Coverage Analysis in Jupyter Notebooks](#code-coverage-analysis-in-jupyter-notebooks)
+- [Crashes](#crashes)
+  - [Replay Testcases with `aflnet-replay`](#replay-testcases-with-aflnet-replay)
+  - [Injected Vulnerabilities](#injected-vulnerabilities)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ## Build AFLNET
 
