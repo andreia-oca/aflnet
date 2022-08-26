@@ -13,7 +13,7 @@ Check AFLNET [guide](https://github.com/aflnet/aflnet#installation-tested-on-ubu
 
 Eclipse Mosquitto - an open source MQTT broker written in C ([repository](https://github.com/eclipse/mosquitto) | [documentation](https://mosquitto.org/)).
 
-#### Build Mosquitto Locally (with no instrumentation)
+#### Build Mosquitto Locally
 
 This section describer how to test the broker features locally before any fuzzing campaign.
 
@@ -26,7 +26,7 @@ Install dependencies:
 sudo apt install libcjson1 libcjson-dev libssl-dev docbook-xsl docbook xsltproc
 ```
 
-Clone and compile `mosquitto`:\\
+Clone and compile `mosquitto`:
 ```bash
 git clone https://github.com/eclipse/mosquitto
 cd mosquitto
@@ -34,7 +34,7 @@ cd mosquitto
 make all WITH_DOCS=no
 ```
 
-Run `mosquitto`:\\
+Run `mosquitto`:
 ```bash
 cd ./mosquitto/src/
 ./mosquitto
@@ -42,14 +42,14 @@ cd ./mosquitto/src/
 ./mosquitto -c mosquitto.conf
 ```
 
-Create clients to test the broker:\\
+Create clients to test the broker:
 ```bash
 sudo apt install -y mosquitto-clients
 mosquitto_sub -h localhost -t sensor/temperature 
 mosquitto_pub -h localhost -t sensor/temperature 27
 ```
 
-#### Prepare Mosquitto for Fuzzing
+#### Build Mosquitto for Fuzzing
 
 1. The source code must be compiled with `gcov` binds to display code coverage.
 
@@ -87,6 +87,12 @@ Fuzzquitto is a forked version of Mosquitto that is more suitable to fuzzing ([r
  * features a handler to extract code coverage information at runtime (via signals)
  * compiled it with `afl-gcc`: `CC=afl-gcc make clean all` for instrumentation 
 
+### NanoMQ
+
+An ultra-lightweight and blazing-fast MQTT broker for IoT edge ([repository](https://github.com/emqx/nanomq) | [documentation](https://nanomq.io/)).
+
+Not tested yet.
+
 ## Start a Fuzzing Campaign
 
 ### Create a Seed Corpus
@@ -123,7 +129,7 @@ mosquitto_pub -h localhost -t test/temp -m 30
  - just for fuzzing in publisher mode (see `tutorials/mosquitto/input_publisher`)
  - an extended corpus imported from [mqtt-fuzz](https://github.com/F-Secure/mqtt_fuzz/tree/master/valid-cases) (see `tutorials/mosquitto/input_mqtt_fuzz`).
 
-### Start the Fuzzing Campaign Locally
+### Start a Fuzzing Campaign Locally
 
 Before starting a fuzzing campaing run the following commands to stop AFL from complaining:
 ```bash
@@ -152,7 +158,7 @@ afl-fuzz -m none -d -i ./input -o ./output_tmp -N tcp://127.0.0.1/1883 -P MQTT -
 
 Note: It is recommended to add the timestamp in the name of the output directory - `output_dd_mm_yyyy_hh_mm` (e.g. `output_12_07_2022_17_30`) for analysing data further along the road.
 
-### Start the Fuzzing Campaign Remotely (via `Docker`)
+### Start a Fuzzing Campaign Remotely
 
 Before starting a fuzzing campaing run the following commands on the **host system** to stop AFL from complaining:
 ```bash
@@ -176,7 +182,7 @@ docker exec -it aflnet_mqtt_test /bin/bash
 
 ## Code Coverage
 
-### How to Check Code Coverage
+### Code Coverage Analysis
 
 Show a code coverage summary (on lines or branches):
 
@@ -201,8 +207,6 @@ Clean `gcovr` temporary runtime files:\\
 gcovr -r ./fuzzquitto/src -s -d > /dev/null 2>&1
 ``` 
 
-### Code Coverage Analysis
-
 `coverage_analysis.sh` is a tool that will replay every interesting path that AFLNET found and saved in `replayable-queue` or `queue`.
 
 The script will generate a `.csv` file with coverage information expressed as number of lines of branches executed per target.
@@ -215,10 +219,22 @@ The scripts gets the following arguments:
 
 An example to run the script:
 ```bash
-# ./coverage_analysis.sh ./output cov_over_time.csv 1 1
+./coverage_analysis.sh ./output cov_over_time.csv 1 1
 ```
 
-## Replay Testcases with `aflnet-replay` or `afl-replay`
+### Code Coverage Analysis in Jupyter Notebooks
+
+To replay all the found paths and get the coverage information from each, one can use the script `coverage_analysis.sh` as follows:
+```bash
+# ./coverage_analysis.sh <aflnet_output_folder> <output_file> <step> <mode>
+./coverage_analysis.sh output cov_over_time.csv 1 1
+```
+
+Next the raw code coverage information will be analyzes in Jupyter Notebooks using `pandas` and `matplotlib` in `notebooks/`.
+
+## Crashes
+
+### Replay Testcases with `aflnet-replay`
 
 For debugging purposes, one can use the replay features of AFLNET `aflnet-replay` and `afl-replay`.
  - `afl-replay` sends the whole testcase as a single data package
@@ -272,21 +288,9 @@ Note: One can also send messages directly to the broker with `netcat`. To yield 
 nc 127.0.0.1 1883 < output/replayable-queueu/id:000004,src:000000,op:flip1,pos:0,+cov | xxd
 ```
 
-## Code Coverage Analysis in Jupyter Notebooks
+### Injected Vulnerabilities
 
-To replay all the found paths and get the coverage information from each, one can use the script `coverage_analysis.sh` as follows:
-```bash
-# ./coverage_analysis.sh <aflnet_output_folder> <output_file> <step> <mode>
-./coverage_analysis.sh output cov_over_time.csv 1 1
-```
-
-Next the raw code coverage information will be analyzes in Jupyter Notebooks using `pandas` and `matplotlib` in `notebooks/`.
-
-## Crashes
-
-### Injected bugs
-
-We injected a null pointer derefence into a frequent exercised path of Mosquitto. This approaches yields almost instant crashes with AFLNET.
+We injected a null pointer derefence into a frequently exercised path of Mosquitto. This approach yields almost instant crashes with AFLNET.
 
 To test yourself, execute the following commands:
 ```bash
